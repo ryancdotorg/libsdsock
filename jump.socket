@@ -1,0 +1,9 @@
+[Unit]
+Description=ssh jumphost dynamic proxy socket
+PartOf=%p.service
+
+[Socket]
+ListenStream=127.0.0.1:1188
+
+[Install]
+WantedBy=sockets.target
