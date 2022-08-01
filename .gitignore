@@ -1,0 +1,8 @@
+# Object files
+*.o
+
+# Shared objects
+*.so
+*.so.*
+
+norm
