@@ -20,6 +20,8 @@
 
 #include "debugp.h"
 
+#pragma GCC visibility push(internal)
+
 static int parse_port(const char *str) {
   char *end;
   errno = 0;
@@ -49,6 +51,7 @@ static int getsockinfo(int fd, int *domain, int *type, int *protocol) {
   return 0;
 }
 
+// allocate a new addrinfo struct
 static struct addrinfo * newaddrinfo() {
   struct addrinfo *ai = malloc(sizeof(struct addrinfo));
   if (ai == NULL) return NULL;
@@ -66,6 +69,7 @@ static struct addrinfo * newaddrinfo() {
   return ai;
 }
 
+// get addrinfo struct based on file descriptor
 int fdaddrinfo(int fd, const struct sockaddr *sa, struct addrinfo **res) {
   int err;
 
@@ -94,6 +98,7 @@ int fdaddrinfo(int fd, const struct sockaddr *sa, struct addrinfo **res) {
   return 0;
 }
 
+// like inet_pton, but with protocol and port
 struct addrinfo * ai_pton(const char *str) {
   struct addrinfo *ai = newaddrinfo();
   if (ai == NULL) { errno = ENOMEM; return NULL; }
@@ -184,6 +189,7 @@ ai_pton_fail:
   return NULL;
 }
 
+// like inet_ntop, but with protocol and port
 char * ai_ntop(char *dst, socklen_t size, const struct addrinfo *ai) {
   // set up output
   size_t n;
@@ -261,6 +267,7 @@ char * ai_ntop(char *dst, socklen_t size, const struct addrinfo *ai) {
   return dst;
 }
 
+// like inet_ntop, but with protocol and port
 char * fd_ntop(char *dst, socklen_t size, int sockfd, const struct sockaddr *sa) {
   int err;
   struct addrinfo *ai;
@@ -269,3 +276,4 @@ char * fd_ntop(char *dst, socklen_t size, int sockfd, const struct sockaddr *sa)
   freeaddrinfo(ai);
   return ret;
 }
+#pragma GCC visibility pop

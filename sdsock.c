@@ -31,10 +31,13 @@ do { \
   debugp("dbgfd %s (%d) %d", fd_ntop(_desc, sizeof(_desc), sockfd, sa), sockfd, val); \
 } while (0)
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 //DLWRAP(socket, int, (int a, int b, int c), (a, b, c));
 DLWRAP(bind, int, (int a, const struct sockaddr *b, socklen_t c), (a, b, c));
 DLWRAP(listen, int, (int a, int b), (a, b));
 DLWRAP(close, int, (int a), (a));
+#pragma GCC diagnostic pop
 
 char * fd_ntop(char *dst, socklen_t size, int sockfd, const struct sockaddr *sa);
 
