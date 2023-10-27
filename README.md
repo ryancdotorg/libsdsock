@@ -20,15 +20,27 @@ generic.
 * libdl development files
 * gcc
 
-### Installing
+### Installation
 
-* `cd` into the directory containing the code and run `./build.sh`
-* Copy `libsdsock.so` somewhere
+```
+git clone https://github.com/ryancdotorg/libsdsock.git
+cd libsdsock
+make
+sudo make install
+```
+
+### Usage
+
 * Create systemd .socket and .service files as required (see examples)
 * Use `systemctl enable` on the .socket unit - this is *not* required for the
   corresponding .service unit.
 * Use `systemctl start` on the .socket unit - again, this is *not* required
   for the corresponding .service unit.
+
+### Debugging
+
+Run `make debug` to build libsdsock-debug.so version, it will print debug
+infomation to stderr.
 
 ## Help
 
