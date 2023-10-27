@@ -8,9 +8,9 @@ via systemd’s “Socket Activation” feature. TCP, UDP, Unix stream sockets a
 supported.
 
 The motivating use case was to have SSH dynamic port forwarding that starts
-(and restarts) on demand. Examples ([jump.socket](jump.socket) and
-[jump.service](jump.service)) are provided for that, though the tool is
-generic.
+(and restarts) on demand. Examples ([jump.socket](jump.socket),
+[jump.service](jump.service) and [jump.sh](jump.sh)) are provided for that,
+though the tool is generic.
 
 ## Getting Started
 
