@@ -33,10 +33,10 @@ do { \
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
-//DLWRAP(socket, int, (int a, int b, int c), (a, b, c));
 DLWRAP(bind, int, (int a, const struct sockaddr *b, socklen_t c), (a, b, c));
 DLWRAP(listen, int, (int a, int b), (a, b));
 DLWRAP(close, int, (int a), (a));
+DLWRAP(close_range, int, (unsigned a, unsigned b, int c), (a, b, c));
 #pragma GCC diagnostic pop
 
 char * fd_ntop(char *dst, socklen_t size, int sockfd, const struct sockaddr *sa);
@@ -190,4 +190,38 @@ int wrap_close(int sockfd) {
   }
 
   return _real_close(sockfd);
+}
+
+// prevent the application from closing range that includes the systemd sockets
+int wrap_close_range(unsigned first, unsigned last, int flags) {
+  if (first <= last && sd_min_fd <= sd_last_fd) {
+    unsigned usd_min_fd = (unsigned)sd_min_fd;
+    unsigned usd_last_fd = (unsigned)sd_last_fd;
+    if (first < usd_min_fd) {
+      if (usd_last_fd < last) {
+        debugp("splitting close_range(%u, %u, %d)", first, last, flags);
+        int ret = _real_close_range(first, usd_min_fd - 1, flags);
+        if (ret != 0) {
+          debugp("close_range: %s", strerror(errno));
+          return ret;
+        }
+        ret = _real_close_range(usd_last_fd + 1, last, flags);
+        if (ret != 0) {
+          debugp("close_range: %s", strerror(errno));
+        }
+        return ret;
+      } else if (usd_min_fd <= last) {
+        debugp("shifting close_range(%u, %u, %d)", first, last, flags);
+        last = usd_min_fd - 1;
+      }
+    } else if (last <= usd_last_fd) {
+      debugp("ignoring close_range(%u, %u, %d)", first, last, flags);
+      return 0;
+    } else if (first <= usd_last_fd) {
+      debugp("shifting close_range(%u, %u, %d)", first, last, flags);
+      first = usd_last_fd + 1;
+    }
+  }
+
+  return _real_close_range(first, last, flags);
 }
