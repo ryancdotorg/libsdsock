@@ -36,7 +36,8 @@ do { \
 DLWRAP(bind, int, (int a, const struct sockaddr *b, socklen_t c), (a, b, c));
 DLWRAP(listen, int, (int a, int b), (a, b));
 DLWRAP(close, int, (int a), (a));
-DLWRAP(close_range, int, (unsigned int a, unsigned int b, unsigned int c), (a, b, c));
+// XXX the third argument does, in fact, need to be an `int`
+DLWRAP(close_range, int, (unsigned int a, unsigned int b, int c), (a, b, c));
 #pragma GCC diagnostic pop
 
 char * fd_ntop(char *dst, socklen_t size, int sockfd, const struct sockaddr *sa);
@@ -193,7 +194,7 @@ int wrap_close(int sockfd) {
 }
 
 // prevent the application from closing range that includes the systemd sockets
-int wrap_close_range(unsigned int first, unsigned int last, unsigned int flags) {
+int wrap_close_range(unsigned int first, unsigned int last, int flags) {
   // the compiler will remove this if SD_LISTEN_FDS_START is non-negative
   if (sd_min_fd < 0) {
     return _real_close_range(first, last, flags);
