@@ -209,7 +209,7 @@ int wrap_close_range(unsigned int first, unsigned int last, unsigned int flags) 
     return _real_close_range(first, last, flags);
   }
 
-  // close any file descriptors before systemd range
+  // close any file descriptors before excluded range
   if (first < ex_first) {
     debugp(
         "calling close_range(%u, %u, %u)"
@@ -223,7 +223,7 @@ int wrap_close_range(unsigned int first, unsigned int last, unsigned int flags) 
     }
   }
 
-  // close any file descriptors after systemd range
+  // close any file descriptors after excluded range
   if (last > ex_last) {
     debugp(
         "calling close_range(%u, %u, %u)"
@@ -237,7 +237,7 @@ int wrap_close_range(unsigned int first, unsigned int last, unsigned int flags) 
     }
   }
 
-  // range entirely inside - compiler should remove this if NDEBUG is defined
+  // entire range excluded - compiler should remove this if NDEBUG is defined
   if (ex_first <= first && last <= ex_last) {
     debugp("ignoring close_range(%u, %u, %u)", first, last, flags);
   }
