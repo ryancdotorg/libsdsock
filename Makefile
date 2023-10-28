@@ -1,15 +1,19 @@
 # libsdsock
 
 ifeq ($(shell id -u),0)
-  PREFIX?=/usr/local
+	PREFIX?=/usr/local
+	INSTALL=install -D
 else
-  PREFIX?=$(HOME)/.local
+	PREFIX?=$(HOME)/.local
+	INSTALL=mkdir -p $(LIBDIR) && cp
 endif
 
 LIBDIR=$(PREFIX)/lib
 
 CC=gcc
 CFLAGS=-O2 --std=gnu11 -Wall -Wextra -Wno-unused-function
+SOFLAGS=-shared -fPIC
+LIBS=-lsystemd -ldl
 
 lib: libsdsock.so
 
@@ -17,25 +21,30 @@ debug: libsdsock-debug.so norm
 
 all: lib debug
 
-libsdsock.so:
-	$(CC) $(CFLAGS) -s -DNDEBUG -shared -fPIC sdsock.c addr.c -lsystemd -ldl -o libsdsock.so
+libsdsock.so: sdsock.c addr.c
+	$(CC) $(CFLAGS) $(SOFLAGS) -s -DNDEBUG $^ $(LIBS) -o $@
 
-libsdsock-debug.so:
-	$(CC) $(CFLAGS) -ggdb -shared -fPIC sdsock.c addr.c -lsystemd -ldl -o libsdsock-debug.so
+libsdsock-debug.so: sdsock.c addr.c
+	$(CC) $(CFLAGS) $(SOFLAGS) -ggdb $^ $(LIBS) -o $@
 
-norm:
-	$(CC) $(CFLAGS) -ggdb norm.c addr.c -o norm
+norm: norm.c addr.c
+	$(CC) $(CFLAGS) -ggdb $^ -o $@
 
 install: libsdsock.so
-	install -Dm755 libsdsock.so $(DESTDIR)$(LIBDIR)/libsdsock.so
+	$(INSTALL) libsdsock.so $(DESTDIR)$(LIBDIR)/libsdsock.so
 
 install-debug: libsdsock-debug.so
-	install -Dm755 libsdsock-debug.so $(DESTDIR)$(LIBDIR)/libsdsock.so
+	$(INSTALL) libsdsock-debug.so $(DESTDIR)$(LIBDIR)/libsdsock.so
 
 uninstall:
 	$(RM) $(DESTDIR)$(LIBDIR)/libsdsock.so
 
-clean:
-	$(RM) libsdsock.so libsdsock-debug.so norm
+.PHONY: lib debug all install install-debug uninstall clean _clean _nop
 
-.PHONY: lib debug all install install-debug uninstall clean
+# hack to force clean to run first *to completion* even for parallel builds
+# note that $(info ...) prints everything on one line
+clean: _nop $(foreach _,$(filter clean,$(MAKECMDGOALS)),$(info $(shell $(MAKE) _clean)))
+_clean:
+	$(RM) libsdsock.so libsdsock-debug.so norm
+_nop:
+	@true
