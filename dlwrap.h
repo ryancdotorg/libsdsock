@@ -1,5 +1,9 @@
 #pragma once
 
+#include <dlfcn.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 // _load_NAME saves the real function as _real_NAME then calls it
 // _wrap_NAME tries to save wrap_NAME tp _impl_NAME, falling back to NAME,
 // then calls the result
@@ -19,6 +23,11 @@ static TYPE _wrap_##NAME ARGS { \
   return _impl_##NAME ARGN; \
 } \
 static TYPE _load_##NAME ARGS { \
-  return (_real_##NAME = dlsym(RTLD_NEXT, #NAME)) ARGN; \
+  _real_##NAME = dlsym(RTLD_NEXT, #NAME); \
+  if (_real_##NAME == NULL) { \
+    fprintf(stderr, "libsdsock: " #NAME " function not found, aborting\n"); \
+    abort(); \
+  } \
+  return _real_##NAME ARGN; \
 } \
 TYPE NAME ARGS { return _impl_##NAME ARGN; }
