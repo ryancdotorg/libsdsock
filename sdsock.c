@@ -194,34 +194,38 @@ int wrap_close(int sockfd) {
 
 // prevent the application from closing range that includes the systemd sockets
 int wrap_close_range(unsigned first, unsigned last, int flags) {
-  if (first <= last && sd_min_fd <= sd_last_fd) {
-    unsigned usd_min_fd = (unsigned)sd_min_fd;
-    unsigned usd_last_fd = (unsigned)sd_last_fd;
-    if (first < usd_min_fd) {
-      if (usd_last_fd < last) {
-        debugp("splitting close_range(%u, %u, %d)", first, last, flags);
-        int ret = _real_close_range(first, usd_min_fd - 1, flags);
-        if (ret != 0) {
-          debugp("close_range: %s", strerror(errno));
-          return ret;
-        }
-        ret = _real_close_range(usd_last_fd + 1, last, flags);
-        if (ret != 0) {
-          debugp("close_range: %s", strerror(errno));
-        }
-        return ret;
-      } else if (usd_min_fd <= last) {
-        debugp("shifting close_range(%u, %u, %d)", first, last, flags);
-        last = usd_min_fd - 1;
-      }
-    } else if (last <= usd_last_fd) {
-      debugp("ignoring close_range(%u, %u, %d)", first, last, flags);
-      return 0;
-    } else if (first <= usd_last_fd) {
-      debugp("shifting close_range(%u, %u, %d)", first, last, flags);
-      first = usd_last_fd + 1;
+  unsigned ex_first = (unsigned)sd_min_fd;
+  unsigned ex_last = (unsigned)sd_last_fd;
+
+  // ranges do not intersect
+  if (first > last || ex_first > ex_last || last < ex_first || first > ex_last) {
+    return _real_close_range(first, last, flags);
+  }
+
+  // range contains numbers before
+  if (first < ex_first) {
+    debugp("closing sub-range before close_range(%u, %u, %d)", first, ex_first - 1, flags);
+    int ret = _real_close_range(first, ex_first - 1, flags);
+    if (ret != 0) {
+      debugp("close_range: %s", strerror(errno));
+      return ret;
     }
   }
 
-  return _real_close_range(first, last, flags);
+  // range contains numbers after
+  if (last > ex_last) {
+    debugp("closing sub-range after close_range(%u, %u, %d)", ex_last + 1, last, flags);
+    int ret = _real_close_range(ex_last + 1, last, flags);
+    if (ret != 0) {
+      debugp("close_range: %s", strerror(errno));
+      return ret;
+    }
+  }
+
+  // range entirely inside
+  if (ex_first <= first && last <= ex_last) {
+    debugp("ignoring close_range(%u, %u, %d)", first, last, flags);
+  }
+
+  return 0;
 }
