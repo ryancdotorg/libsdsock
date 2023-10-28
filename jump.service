@@ -5,6 +5,6 @@ Requires=%p.socket
 
 [Service]
 Type=exec
-Environment=LD_PRELOAD=%h/lib/libsdsock.so
+Environment=LD_PRELOAD=%h/.local/lib/libsdsock.so
 Environment=LIBSDSOCK_MAP=tcp://127.0.0.1:1080=jump.socket
 ExecStart=/usr/bin/ssh -o ExitOnForwardFailure=yes -nNTD 127.0.0.1:1080 jump@<server>

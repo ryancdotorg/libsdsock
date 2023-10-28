@@ -36,7 +36,7 @@ do { \
 DLWRAP(bind, int, (int a, const struct sockaddr *b, socklen_t c), (a, b, c));
 DLWRAP(listen, int, (int a, int b), (a, b));
 DLWRAP(close, int, (int a), (a));
-DLWRAP(close_range, int, (unsigned a, unsigned b, int c), (a, b, c));
+DLWRAP(close_range, int, (unsigned int a, unsigned int b, unsigned int c), (a, b, c));
 #pragma GCC diagnostic pop
 
 char * fd_ntop(char *dst, socklen_t size, int sockfd, const struct sockaddr *sa);
@@ -74,7 +74,7 @@ static const char * getmapname(const char *desc) {
 }
 
 static char **sd_names = NULL;
-static int sd_min_fd = SD_LISTEN_FDS_START;
+static const int sd_min_fd = SD_LISTEN_FDS_START;
 static int sd_last_fd = -1;
 
 static int sd_sock_fd(const char *name) {
@@ -193,38 +193,53 @@ int wrap_close(int sockfd) {
 }
 
 // prevent the application from closing range that includes the systemd sockets
-int wrap_close_range(unsigned first, unsigned last, int flags) {
-  unsigned ex_first = (unsigned)sd_min_fd;
-  unsigned ex_last = (unsigned)sd_last_fd;
+int wrap_close_range(unsigned int first, unsigned int last, unsigned int flags) {
+  // the compiler will remove this if SD_LISTEN_FDS_START is non-negative
+  if (sd_min_fd < 0) {
+    return _real_close_range(first, last, flags);
+  }
 
-  // ranges do not intersect
+  // checked above
+  unsigned int ex_first = (unsigned int)sd_min_fd;
+  // checked below before use
+  unsigned int ex_last = (unsigned int)sd_last_fd;
+
+  // ranges are invalid or do not intersect
   if (sd_min_fd > sd_last_fd || first > last || last < ex_first || first > ex_last) {
     return _real_close_range(first, last, flags);
   }
 
-  // range contains numbers before
+  // close any file descriptors before systemd range
   if (first < ex_first) {
-    debugp("closing sub-range before close_range(%u, %u, %d)", first, ex_first - 1, flags);
-    int ret = _real_close_range(first, ex_first - 1, flags);
-    if (ret != 0) {
+    debugp(
+        "calling close_range(%u, %u, %u)"
+        " instead of close_range(%u, %u, %u)",
+        first, ex_first - 1, flags,
+        first, last, flags
+    );
+    if (_real_close_range(first, ex_first - 1, flags) != 0) {
       debugp("close_range: %s", strerror(errno));
-      return ret;
+      return -1;
     }
   }
 
-  // range contains numbers after
+  // close any file descriptors after systemd range
   if (last > ex_last) {
-    debugp("closing sub-range after close_range(%u, %u, %d)", ex_last + 1, last, flags);
-    int ret = _real_close_range(ex_last + 1, last, flags);
-    if (ret != 0) {
+    debugp(
+        "calling close_range(%u, %u, %u)"
+        " instead of close_range(%u, %u, %u)",
+        ex_last + 1, last, flags,
+        first, last, flags
+    );
+    if (_real_close_range(ex_last + 1, last, flags) != 0) {
       debugp("close_range: %s", strerror(errno));
-      return ret;
+      return -1;
     }
   }
 
-  // range entirely inside
+  // range entirely inside - compiler should remove this if NDEBUG is defined
   if (ex_first <= first && last <= ex_last) {
-    debugp("ignoring close_range(%u, %u, %d)", first, last, flags);
+    debugp("ignoring close_range(%u, %u, %u)", first, last, flags);
   }
 
   return 0;

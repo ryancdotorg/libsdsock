@@ -8,9 +8,9 @@ via systemd’s “Socket Activation” feature. TCP, UDP, Unix stream sockets a
 supported.
 
 The motivating use case was to have SSH dynamic port forwarding that starts
-(and restarts) on demand. Examples ([jump.socket](jump.socket) and
-[jump.service](jump.service)) are provided for that, though the tool is
-generic.
+(and restarts) on demand. Examples ([jump.socket](jump.socket),
+[jump.service](jump.service) and [jump.sh](jump.sh)) are provided for that,
+though the tool is generic.
 
 ## Getting Started
 
@@ -20,15 +20,29 @@ generic.
 * libdl development files
 * gcc
 
-### Installing
+### Installation
 
-* `cd` into the directory containing the code and run `./build.sh`
-* Copy `libsdsock.so` somewhere
+```
+git clone https://github.com/ryancdotorg/libsdsock.git
+cd libsdsock
+make
+make install
+```
+
+Run as root (`sudo make install`) to install system-wide.
+
+### Usage
+
 * Create systemd .socket and .service files as required (see examples)
 * Use `systemctl enable` on the .socket unit - this is *not* required for the
   corresponding .service unit.
 * Use `systemctl start` on the .socket unit - again, this is *not* required
   for the corresponding .service unit.
+
+### Debugging
+
+Run `make debug` to build libsdsock-debug.so version, it will print debug
+infomation to stderr.
 
 ## Help
 
@@ -44,7 +58,8 @@ processed. The only functions shimmed are `bind`, `listen`, `close` and
 
 ## Authors
 
-[Ryan Castellucci](https://rya.nc/about.html) ([@ryancdotorg](https://github.com/ryancdotorg))
+[Ryan Castellucci](https://rya.nc/about.html) ([@ryancdotorg](https://github.com/ryancdotorg)),
+Ivan ([@vanym](https://github.com/vanym))
 
 ## License
 
