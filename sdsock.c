@@ -198,7 +198,7 @@ int wrap_close_range(unsigned first, unsigned last, int flags) {
   unsigned ex_last = (unsigned)sd_last_fd;
 
   // ranges do not intersect
-  if (first > last || ex_first > ex_last || last < ex_first || first > ex_last) {
+  if (sd_min_fd > sd_last_fd || first > last || last < ex_first || first > ex_last) {
     return _real_close_range(first, last, flags);
   }
 
