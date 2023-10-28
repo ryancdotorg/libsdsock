@@ -26,8 +26,10 @@ though the tool is generic.
 git clone https://github.com/ryancdotorg/libsdsock.git
 cd libsdsock
 make
-sudo make install
+make install
 ```
+
+Run as root (`sudo make install`) to install system-wide.
 
 ### Usage
 

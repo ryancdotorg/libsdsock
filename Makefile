@@ -1,4 +1,11 @@
-PREFIX?=/usr/local
+# libsdsock
+
+ifeq ($(shell id -u),0)
+  PREFIX?=/usr/local
+else
+  PREFIX?=$(HOME)/.local
+endif
+
 LIBDIR=$(PREFIX)/lib
 
 CC=gcc
