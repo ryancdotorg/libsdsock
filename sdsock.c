@@ -38,6 +38,7 @@ DLWRAP(listen, int, (int a, int b), (a, b));
 DLWRAP(close, int, (int a), (a));
 // XXX the third argument does, in fact, need to be an `int`
 DLWRAP(close_range, int, (unsigned int a, unsigned int b, int c), (a, b, c));
+DLWRAP(closefrom, void, (int a), (a));
 #pragma GCC diagnostic pop
 
 char * fd_ntop(char *dst, socklen_t size, int sockfd, const struct sockaddr *sa);
@@ -244,4 +245,17 @@ int wrap_close_range(unsigned int first, unsigned int last, int flags) {
   }
 
   return 0;
+}
+
+void wrap_closefrom(int lowfd) {
+  if (lowfd > sd_last_fd) {
+    _real_closefrom(lowfd);
+  }
+
+  if (lowfd < sd_min_fd) {
+    for (int fd = lowfd; fd < sd_min_fd; ++fd) {
+      _real_close(fd);
+    }
+    errno = 0;
+  }
 }

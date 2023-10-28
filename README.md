@@ -53,8 +53,8 @@ being provided without warranty in the hopes that it may be useful.
 
 This software has not been independently audited and may contain bugs. That
 said, the exposure surface of the code is minimal, and no untrusted data is
-processed. The only functions shimmed are `bind`, `listen`, `close` and
-`close_range`.
+processed. The only functions shimmed are `bind`, `listen`, `close`,
+`closefrom` and `close_range`.
 
 ## Authors
 
