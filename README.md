@@ -58,7 +58,8 @@ processed. The only functions shimmed are `bind`, `listen`, `accept`, and
 
 ## Authors
 
-[Ryan Castellucci](https://rya.nc/about.html) ([@ryancdotorg](https://github.com/ryancdotorg))
+[Ryan Castellucci](https://rya.nc/about.html) ([@ryancdotorg](https://github.com/ryancdotorg)),
+Ivan ([@vanym](https://github.com/vanym))
 
 ## License
 
