@@ -258,11 +258,13 @@ void wrap_closefrom(int lowfd) {
     // unlikely to happen; sd_min_fd is normally 3, and the
     // lowest valid fd is 0, so a simple for loop is fine
     debugp("closing fds from %d to %d", lowfd, sd_min_fd - 1);
+    // closefrom isn't supposed to set errno, but close might, so save it
+    int saved_errno = errno;
     for (int fd = lowfd; fd < sd_min_fd; ++fd) {
       _real_close(fd);
     }
-    // close might set errno, but closefrom isn't supposed to, so clear it
-    errno = 0;
+    // restore whatever errno was set to before the loop
+    errno = saved_errno;
   }
 
   debugp(
