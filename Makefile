@@ -11,7 +11,7 @@ endif
 LIBDIR=$(PREFIX)/lib
 
 CC=gcc
-CFLAGS=-O2 --std=gnu11 -Wall -Wextra -Wno-unused-function
+CFLAGS=-O2 --std=gnu11 -Wall -Wextra -Wformat -Wformat-signedness -pedantic -Wno-unused-function
 SOFLAGS=-shared -fPIC
 LIBS=-lsystemd -ldl
 

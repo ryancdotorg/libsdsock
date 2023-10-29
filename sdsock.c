@@ -214,8 +214,8 @@ int wrap_close_range(unsigned int first, unsigned int last, int flags) {
   // close any file descriptors before excluded range
   if (first < ex_first) {
     debugp(
-        "calling close_range(%u, %u, %u)"
-        " instead of close_range(%u, %u, %u)",
+        "calling close_range(%u, %u, %d)"
+        " instead of close_range(%u, %u, %d)",
         first, ex_first - 1, flags,
         first, last, flags
     );
@@ -228,8 +228,8 @@ int wrap_close_range(unsigned int first, unsigned int last, int flags) {
   // close any file descriptors after excluded range
   if (last > ex_last) {
     debugp(
-        "calling close_range(%u, %u, %u)"
-        " instead of close_range(%u, %u, %u)",
+        "calling close_range(%u, %u, %d)"
+        " instead of close_range(%u, %u, %d)",
         ex_last + 1, last, flags,
         first, last, flags
     );
@@ -241,7 +241,7 @@ int wrap_close_range(unsigned int first, unsigned int last, int flags) {
 
   // entire range excluded - compiler should remove this if NDEBUG is defined
   if (ex_first <= first && last <= ex_last) {
-    debugp("ignoring close_range(%u, %u, %u)", first, last, flags);
+    debugp("ignoring close_range(%u, %u, %d)", first, last, flags);
   }
 
   return 0;
@@ -255,6 +255,9 @@ void wrap_closefrom(int lowfd) {
   if (lowfd < sd_min_fd) {
     for (int fd = lowfd; fd < sd_min_fd; ++fd) {
       _real_close(fd);
+    }
+    if (sd_last_fd >= sd_low_fd) {
+      _real_closefrom(sd_last_fd + 1);
     }
     errno = 0;
   }
