@@ -86,12 +86,12 @@ static int sd_sock_fd(const char *name) {
   return -1;
 }
 
-static char dsock_ready = 0;
+static char sdsock_ready = 0;
 
 // this will be run when the library is loaded
-static void __attribute__((constructor)) dsock_init() {
-  if (dsock_ready) return;
-  debugp("dsock_init()\n");
+static void __attribute__((constructor)) sdsock_init() {
+  if (sdsock_ready) return;
+  debugp("sdsock_init()\n");
 
   // try to populate the socket mapping
   char *s = getenv("LIBSDSOCK_MAP");
@@ -124,7 +124,7 @@ static void __attribute__((constructor)) dsock_init() {
     sd_last_fd = (sd_min_fd + n) - 1;
   }
 
-  dsock_ready = 1;
+  sdsock_ready = 1;
 }
 
 // try to swap in a socket from systemd
