@@ -250,15 +250,23 @@ int wrap_close_range(unsigned int first, unsigned int last, int flags) {
 void wrap_closefrom(int lowfd) {
   if (lowfd > sd_last_fd) {
     _real_closefrom(lowfd);
+    return;
   }
 
-  if (lowfd < sd_min_fd) {
-    for (int fd = lowfd; fd < sd_min_fd; ++fd) {
-      _real_close(fd);
-    }
-    if (sd_last_fd >= sd_min_fd) {
-      _real_closefrom(sd_last_fd + 1);
-    }
-    errno = 0;
+  if (sd_min_fd == sd_last_fd) {
+    debugp("skipping fd %d for closefrom(%d)", sd_min_fd, lowfd);
+  } else {
+    debugp(
+      "skipping fds %d through %d for closefrom(%d)",
+      sd_min_fd, sd_last_fd, lowfd
+    );
   }
+  for (int fd = lowfd; fd < sd_min_fd; ++fd) {
+    _real_close(fd);
+  }
+
+  _real_closefrom(sd_last_fd + 1);
+
+  // closefrom doesn't set errno, but close might so clear it
+  errno = 0;
 }
