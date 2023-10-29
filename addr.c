@@ -20,6 +20,14 @@
 
 #include "debugp.h"
 
+#define US(X) (_Generic((X), \
+  char: (unsigned char)(X), \
+  short: (unsigned short)(X), \
+  int: (unsigned int)(X), \
+  long int: (unsigned long int)(X), \
+  long long int: (unsigned long long int)(X) \
+))
+
 #pragma GCC visibility push(internal)
 
 static int parse_port(const char *str) {
@@ -204,7 +212,7 @@ char * ai_ntop(char *dst, socklen_t size, const struct addrinfo *ai) {
   int protocol = ai->ai_protocol;
 
   if (family != sa->sa_family) {
-    snprintf(dst, size, "Address family mismatch: ai %u != sa %u", family, sa->sa_family);
+    snprintf(dst, size, "Address family mismatch: ai %d != sa %d", family, sa->sa_family);
     return NULL;
   }
 
@@ -254,11 +262,11 @@ char * ai_ntop(char *dst, socklen_t size, const struct addrinfo *ai) {
       strncpy(str, path, size);
       if (path != (char *)&(sun->sun_path)) free(path);
     } else {
-      snprintf(dst, size, "Unknown unix socket type %u (0x%4x)", socktype, socktype);
+      snprintf(dst, size, "Unknown unix socket type %d (0x%4x)", socktype, US(socktype));
       return NULL;
     }
   } else {
-    snprintf(dst, size, "Unknown address family %u (0x%4x)", family, family);
+    snprintf(dst, size, "Unknown address family %d (0x%4x)", family, US(family));
     return NULL;
   }
 
