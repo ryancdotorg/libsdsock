@@ -256,7 +256,7 @@ void wrap_closefrom(int lowfd) {
     for (int fd = lowfd; fd < sd_min_fd; ++fd) {
       _real_close(fd);
     }
-    if (sd_last_fd >= sd_low_fd) {
+    if (sd_last_fd >= sd_min_fd) {
       _real_closefrom(sd_last_fd + 1);
     }
     errno = 0;
