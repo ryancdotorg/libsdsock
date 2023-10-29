@@ -20,9 +20,12 @@ int main(int argc, char *argv[]) {
   if (argc != 2) return -1;
 
   struct addrinfo *ai = ai_pton(argv[1]);
-  if (ai == NULL) return 2;
+  if (ai == NULL) {
+    printf("INVALID %s\n", argv[1]);
+    return 2;
+  }
   ai_ntop(buf, sizeof(buf), ai, NULL);
-  printf("normalized %s\n", buf);
+  printf("OKAY %s\n", buf);
 
   return 0;
 }
