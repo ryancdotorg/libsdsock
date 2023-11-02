@@ -77,6 +77,7 @@ static struct addrinfo * newaddrinfo() {
   return ai;
 }
 
+/*
 // get addrinfo struct based on file descriptor
 int fdaddrinfo(int fd, const struct sockaddr *sa, struct addrinfo **res) {
   int err;
@@ -105,6 +106,7 @@ int fdaddrinfo(int fd, const struct sockaddr *sa, struct addrinfo **res) {
 
   return 0;
 }
+*/
 
 // like inet_pton, but with protocol and port
 struct addrinfo * ai_pton(const char *str) {
@@ -277,11 +279,14 @@ char * ai_ntop(char *dst, socklen_t size, const struct addrinfo *ai) {
 
 // like inet_ntop, but with protocol and port
 char * fd_ntop(char *dst, socklen_t size, int sockfd, const struct sockaddr *sa) {
-  int err;
-  struct addrinfo *ai;
-  if ((err = fdaddrinfo(sockfd, sa, &ai)) != 0) return NULL;
-  char *ret = ai_ntop(dst, size, ai);
-  freeaddrinfo(ai);
-  return ret;
+  struct addrinfo ai;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+  ai.ai_addr = (const struct sockaddr *)sa;
+#pragma GCC diagnostic pop
+  if (getsockinfo(sockfd, &ai.ai_family, &ai.ai_socktype, &ai.ai_protocol) != 0) {
+    return NULL;
+  }
+  return ai_ntop(dst, size, &ai);
 }
 #pragma GCC visibility pop
