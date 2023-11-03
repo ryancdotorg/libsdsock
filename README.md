@@ -56,6 +56,10 @@ said, the exposure surface of the code is minimal, and no untrusted data is
 processed. The only functions shimmed are `bind`, `listen`, `close`,
 `closefrom` and `close_range`.
 
+## To Do
+
+Tests would probably be a good idea.
+
 ## Authors
 
 [Ryan Castellucci](https://rya.nc/about.html) ([@ryancdotorg](https://github.com/ryancdotorg)),
