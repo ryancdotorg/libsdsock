@@ -77,7 +77,21 @@ static struct addrinfo * newaddrinfo() {
   return ai;
 }
 
-/*
+int deladdrinfo(struct addrinfo *curr) {
+  int ret = 0;
+
+  while (curr != NULL) {
+    struct addrinfo *next = curr->ai_next;
+    free(curr->ai_canonname);
+    free(curr->ai_addr);
+    free(curr);
+    curr = next;
+    ++ret;
+  }
+
+  return ret;
+}
+
 // get addrinfo struct based on file descriptor
 int fdaddrinfo(int fd, const struct sockaddr *sa, struct addrinfo **res) {
   int err;
@@ -91,7 +105,7 @@ int fdaddrinfo(int fd, const struct sockaddr *sa, struct addrinfo **res) {
   } else {
     // populate sockaddr from fd
     if ((err = getsockname(fd, ai->ai_addr, &(ai->ai_addrlen))) != 0) {
-      free(ai->ai_addr); free(ai);
+      deladdrinfo(ai);
       *res = NULL;
       return err;
     }
@@ -99,21 +113,19 @@ int fdaddrinfo(int fd, const struct sockaddr *sa, struct addrinfo **res) {
 
   // populate other fields
   if ((err = getsockinfo(fd, &(ai->ai_family), &(ai->ai_socktype), &(ai->ai_protocol))) != 0) {
-    free(ai->ai_addr); free(ai);
+    deladdrinfo(ai);
     *res = NULL;
     return err;
   }
 
   return 0;
 }
-*/
 
 // like inet_pton, but with protocol and port
 struct addrinfo * ai_pton(const char *str) {
   struct addrinfo *ai = newaddrinfo();
   if (ai == NULL) { errno = ENOMEM; return NULL; }
   struct sockaddr *sa = ai->ai_addr;
-  if (sa == NULL) { errno = ENOMEM; goto ai_pton_fail; }
 
   const char *sep = strstr(str, "://");
   if (sep == NULL) return NULL;
@@ -195,7 +207,7 @@ struct addrinfo * ai_pton(const char *str) {
   return ai;
 
 ai_pton_fail:
-  freeaddrinfo(ai);
+  deladdrinfo(ai);
   return NULL;
 }
 
