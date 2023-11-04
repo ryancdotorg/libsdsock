@@ -20,22 +20,24 @@
 
 #include "debugp.h"
 
+// will error if already unsigned
 #define US(X) (_Generic((X), \
   char: (unsigned char)(X), \
   short: (unsigned short)(X), \
   int: (unsigned int)(X), \
-  long int: (unsigned long int)(X), \
-  long long int: (unsigned long long int)(X) \
+  long: (unsigned long)(X), \
+  long long: (unsigned long long)(X) \
 ))
 
 #pragma GCC visibility push(internal)
 
+// https://blog.habets.se/2022/10/No-way-to-parse-integers-in-C.html
 static int parse_port(const char *str) {
   char *end;
   errno = 0;
-  unsigned long int x = strtoul(str, &end, 10);
-  if (errno == 0 && x < 65536 && str != end && end[0] == '\0') {
-    return x;
+  long x = strtol(str, &end, 10);
+  if (errno == 0 && x >= 0 && x < 65536 && str != end && end[0] == '\0') {
+    return US(x);
   }
   return -1;
 }
