@@ -233,7 +233,7 @@ char * ai_ntop(char *dst, socklen_t size, const struct addrinfo *ai) {
   }
 
   if (family == AF_INET || family == AF_INET6) {
-    // get the protcol info
+    // get the protocol info
     if (socktype == SOCK_DGRAM && (protocol == 0 || protocol == IPPROTO_UDP)) {
       protocol = IPPROTO_UDP;
       n = snprintf(str, size, "udp://");

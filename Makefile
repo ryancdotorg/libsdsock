@@ -1,19 +1,34 @@
 # libsdsock
+MAKEFLAGS += --no-builtin-rules
+export LANG=C LC_ALL=C
+
+.PHONY: all clean _clean _nop
+
+CC ?= gcc
+AS ?= gcc
+PP ?= cpp
+LD ?= ld
+STRIP ?= strip
 
 ifeq ($(shell id -u),0)
-	PREFIX?=/usr/local
-	INSTALL=install -D
+	PREFIX ?= /usr/local
+	INSTALL = install -D
 else
-	PREFIX?=$(HOME)/.local
-	INSTALL=mkdir -p $(LIBDIR) && cp
+	PREFIX ?= $(HOME)/.local
+	INSTALL = mkdir -p $(LIBDIR) && cp
 endif
 
 LIBDIR=$(PREFIX)/lib
 
-CC=gcc
-CFLAGS=-O2 --std=gnu11 -Wall -Wextra -Wformat -Wformat-signedness -pedantic -Wno-unused-function
-SOFLAGS=-shared -fPIC
-LIBS=-lsystemd -ldl
+CFLAGS = -O2 --std=gnu11 -Wall -Wextra -Wformat -Wformat-signedness -pedantic -Wno-unused-function
+SOFLAGS = -shared -fPIC
+LIBS = -ldl
+
+ifeq ($(WITHOUT_SYSTEMD),1)
+	override CFLAGS += -DWITHOUT_SYSTEMD=1
+else
+	override LIBS += -lsystemd
+endif
 
 lib: libsdsock.so
 

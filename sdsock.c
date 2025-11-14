@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <limits.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <dlfcn.h>
@@ -18,9 +19,105 @@
 #include <sys/stat.h>
 #include <sys/un.h>
 
-#include <systemd/sd-daemon.h>
-
 #include "debugp.h"
+
+#ifndef WITHOUT_SYSTEMD
+#include <systemd/sd-daemon.h>
+int sd_listen(char ***names) { return sd_listen_fds_with_names(1, names); }
+#else
+#define SD_LISTEN_FDS_START 3
+
+static inline int _sd_listen(char ***names) {
+  int n_fds = 0;
+
+  const char *env;
+  char *end, *entries, *ptr;
+
+  // are the enviornment variables for us?
+  if ((env = getenv("LISTEN_PID")) == NULL) { return 0; }
+  debugp("LISTEN_PID: %s", env);
+  pid_t pid = strtoul(env, &end, 10);
+  if (*end != '\0' || pid == 0 || errno != 0) { return -ERANGE; }
+  debugp("pid: %u", pid);
+  if (pid != getpid()) { return 0; }
+
+  // how many file descriptors are there?
+  if ((env = getenv("LISTEN_FDS")) == NULL) { return 0; }
+  debugp("LISTEN_FDS: %s", env);
+  n_fds = strtol(env, &end, 10);
+  debugp("n_fds: %d", n_fds);
+  if (*end != '\0' || errno != 0) { return -ERANGE; }
+  if (n_fds == 0) { return 0; }
+  if (n_fds < 0 || n_fds > INT_MAX - SD_LISTEN_FDS_START) { return -EINVAL; }
+
+  // set FD_CLOEXEC on all the file descriptors
+  for (int fd = SD_LISTEN_FDS_START; fd < n_fds + SD_LISTEN_FDS_START; ++fd) {
+    int flags = fcntl(fd, F_GETFD, 0);
+    if (flags < 0) { return -errno; }
+    if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) { return -errno; }
+  }
+
+  if (names != NULL) {
+    if ((env = getenv("LISTEN_FDNAMES")) == NULL) { goto no_names; }
+
+    debugp("LISTEN_FDNAMES: %s", env);
+
+    // copy the names
+    if ((entries = strdup(env)) == NULL) { return -errno; }
+
+    // allocate for n_names pointers + 1 for the null terminator
+    *names = malloc(sizeof(char *) * (n_fds + 1));
+    if (*names == NULL) {
+      free(entries);
+      return -ENOMEM;
+    }
+
+    // populate the names array
+    int i = 0;
+    char *p = entries;
+    for (i = 0; i < n_fds && *p != '\0'; i++) {
+      (*names)[i] = p;
+      if (*(p = strchrnul(p, ':')) == ':') {
+        // only null terminate and increment if we found a colon
+        *p++ = '\0';
+      }
+      debugp("names[%d]: '%s'", i, (*names)[i]);
+    }
+
+    // validates that we got the expected number of names AND consumed the whole string
+    if (i != n_fds || *p != '\0') {
+      free(entries);
+      return -EINVAL;
+    }
+
+    // null terminate the array
+    (*names)[n_fds] = NULL;
+  }
+
+  // happy path
+  return n_fds;
+
+  // FYI man, alright. You could sit at home, and do like absolutely nothing,
+  // and your name goes through like 17 computers a day. 1984? Yeah right, man.
+  // That's a typo. Orwell is here now. He's livin' large. We have no names,
+  // man. No names. We are nameless! -- Cereal Killer
+no_names:
+  *names = NULL;
+  return n_fds;
+}
+
+int sd_listen(char ***names) {
+  int n_fds = _sd_listen(names);
+  errno = 0;
+
+  if (unsetenv("LISTEN_PID") != 0) abort();
+  if (unsetenv("LISTEN_FDS") != 0) abort();
+  if (unsetenv("LISTEN_FDNAMES") != 0) abort();
+
+  return n_fds;
+}
+#endif
+
 #include "dlwrap.h"
 
 #define dbgfd(sockfd, sa) \
@@ -81,6 +178,7 @@ static int sd_last_fd = -1;
 
 static int sd_sock_fd(const char *name) {
   for (int i = 0, fd = sd_min_fd; fd <= sd_last_fd; ++i, ++fd) {
+    if (sd_names == NULL) return -1;
     if (strcmp(name, sd_names[i]) == 0) return fd;
   }
   return -1;
@@ -117,9 +215,9 @@ static void __attribute__((constructor)) sdsock_init() {
     if ((s = p)[0] == ',') ++s;
   }
 
-  int n = sd_listen_fds_with_names(1, &sd_names);
+  int n = sd_listen(&sd_names);
   if (n < 0) {
-    debugp("sd_listen_fds error: %s\n", strerror(-n));
+    debugp("sd_listen error: %s\n", strerror(-n));
   } else {
     sd_last_fd = (sd_min_fd + n) - 1;
   }
